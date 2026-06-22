@@ -28,7 +28,7 @@ reporting (CSV) and raw data archival (Pickle).
 
 ## Usage
 
-from 025_cyber_archive import CyberArchive\
+from cyber_archive.py import CyberArchive\
 \
 \# Initialize archival system\
 vault = CyberArchive(\"security_vault.db\")\
