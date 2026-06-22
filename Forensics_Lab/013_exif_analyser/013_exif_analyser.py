@@ -1,25 +1,20 @@
 import os
+import sys
 from PIL import Image
-from PIL.ExifTags import TAGS
+from PIL.ExifTags import TAGS, GPSTAGS
 
 class ExifAnalyser:
-    """
-    Extracts and displays EXIF metadata from image files.
-    Used in digital forensics to retrieve timestamps, device info, 
-    and geolocation data from image evidence.
-    """
-    def __init__(self, file_path="evidence.jpg"):
+    
+    def __init__(self, file_path):
         self.file_path = file_path
 
     def run_analysis(self):
-        """Processes the image and prints formatted EXIF data."""
         if not os.path.exists(self.file_path):
             print(f"[-] Error: File '{self.file_path}' not found.")
-            print(f"[*] Current directory: {os.getcwd()}")
             return
 
-        print(f"[*] Analyzing metadata for: {self.file_path}")
-        print("-" * 40)
+        print(f"[!] Extracting forensic metadata: {self.file_path}")
+        print("-" * 50)
 
         try:
             with Image.open(self.file_path) as img:
@@ -30,19 +25,30 @@ class ExifAnalyser:
                     return
 
                 for tag_id in exif_data:
-                    tag = TAGS.get(tag_id, tag_id)
+                    tag_name = TAGS.get(tag_id, tag_id)
                     data = exif_data.get(tag_id)
-
-                    # Decodifica dados binários se necessário
                     if isinstance(data, bytes):
                         data = data.decode(errors="ignore")
+                    print(f"{tag_name:<25}: {data}")
 
-                    print(f"{tag:<20}: {data}")
+                gps_info = exif_data.get_ifd(0x8825)
+                if gps_info:
+                    print("\n[!] Geolocation Data (GPS Info) Identified:")
+                    print("-" * 50)
+                    for tag_id in gps_info:
+                        tag_name = GPSTAGS.get(tag_id, tag_id)
+                        data = gps_info.get(tag_id)
+                        if isinstance(data, bytes):
+                            data = data.decode(errors="ignore")
+                        print(f"  {tag_name:<23}: {data}")
 
         except Exception as e:
-            print(f"[-] Failed to process image: {e}")
+            print(f"[-] Failed to process image archive: {e}")
 
 if __name__ == "__main__":
-    target = input("Enter path to image (e.g., evidence.jpg): ")
-    analyser = ExifAnalyser(target)
+    if len(sys.argv) < 2:
+        print("Usage: python exif_analyser.py <path_to_image.jpg>")
+        sys.exit(1)
+
+    analyser = ExifAnalyser(sys.argv[1])
     analyser.run_analysis()
