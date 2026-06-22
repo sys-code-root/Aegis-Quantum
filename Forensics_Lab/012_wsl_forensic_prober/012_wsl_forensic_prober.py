@@ -1,15 +1,13 @@
-import os
-import datetime
-import platform
+import ast
 import binascii
-import psutil
+import datetime
+import os
+import platform
 import time
+import psutil
 
 class WSLForensicProber:
-    """
-    Forensic auditing tool for WSL/Linux environments.
-    Focuses on file integrity, process monitoring, and persistence detection.
-    """
+    
     def __init__(self):
         self.log_file = "wsl_forensic_evidence.log"
         self.signatures = {
@@ -43,7 +41,13 @@ class WSLForensicProber:
         try:
             with open(path, "rb") as f:
                 header = binascii.hexlify(f.read(4)).decode().lower()
-                detected_type = self.signatures.get(header, "Unknown")
+                
+                detected_type = "Unknown"
+                for sig, label in self.signatures.items():
+                    if header.startswith(sig):
+                        detected_type = label
+                        break
+                        
                 self.write_log(f"|-- Signature: {detected_type} ({header})")
         except Exception as e:
             self.write_log(f"|-- Error reading header: {e}")
@@ -64,7 +68,8 @@ class WSLForensicProber:
         for path in paths:
             if os.path.exists(path):
                 with open(path, "r", errors="ignore") as f:
-                    if any(cmd in f.read() for cmd in ["http", "curl", "nc"]):
+                    content = f.read()
+                    if any(cmd in content for cmd in ["http", "curl", "nc"]):
                         self.write_log(f"[!] Warning: Suspicious network commands in {path}")
 
     def monitor_folder_realtime(self, path, limit=15):
@@ -84,7 +89,8 @@ class WSLForensicProber:
             time.sleep(1)
 
 if __name__ == "__main__":
-    prober = WSLForensicProber()
-    # Basic CLI wrapper
     print(f"--- 012_WSL_FORENSIC_PROBER | OS: {platform.system()} ---")
-    # Add menu or direct calls here...
+    prober = WSLForensicProber()
+    
+    prober.check_persistence()
+    prober.audit_system_resources()
