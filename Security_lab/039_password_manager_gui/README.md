@@ -27,7 +27,7 @@ persistence into a singular application.
 
 ## Usage
 
-from 039_password_manager_gui import PasswordManagerGUI\
+from password_manager.py import PasswordManagerGUI\
 \
 \# Launch the integrated secure vault dashboard\
 app = PasswordManagerGUI()\
