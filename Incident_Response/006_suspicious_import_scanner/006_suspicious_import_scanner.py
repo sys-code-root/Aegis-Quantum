@@ -2,13 +2,8 @@ import ast
 import os
 
 class SuspiciousImportScanner:
-    """
-    Analyzes Python scripts for suspicious library imports without executing them.
-    Used in Incident Response for rapid triage of potentially malicious scripts.
-    """
-
+    
     def __init__(self):
-        # Watchlist of high-risk libraries for security auditing
         self.watchlist = {
             'os': 'System file manipulation.',
             'subprocess': 'Shell command execution.',
@@ -33,34 +28,31 @@ class SuspiciousImportScanner:
             print(f"[!] Scanning: {file_path}")
             print("-" * 50)
 
-            # Uses a set to prevent duplicate alerts in the terminal output
             detected_libs = set()
 
             for node in ast.walk(tree):
-                # Case 1: Standard imports (e.g., 'import os')
+              
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         base_module = alias.name.split('.')[0]
                         if base_module in self.watchlist:
                             detected_libs.add(base_module)
 
-                # Case 2: From imports (e.g., 'from socket import socket')
+                
                 elif isinstance(node, ast.ImportFrom):
                     if node.module:
                         base_module = node.module.split('.')[0]
                         if base_module in self.watchlist:
                             detected_libs.add(base_module)
 
-                # Case 3: Hidden dynamic calls (e.g., '__import__("os")')
                 elif isinstance(node, ast.Call):
                     if isinstance(node.func, ast.Name) and node.func.id == '__import__':
-                        # Verify if the first argument passed to the function is a constant string
+                        
                         if node.args and isinstance(node.args[0], ast.Constant):
                             base_module = str(node.args[0].value).split('.')[0]
                             if base_module in self.watchlist:
                                 detected_libs.add(base_module)
 
-            # Displays the consolidated triage report
             if detected_libs:
                 for lib in detected_libs:
                     self._print_alert(lib)
