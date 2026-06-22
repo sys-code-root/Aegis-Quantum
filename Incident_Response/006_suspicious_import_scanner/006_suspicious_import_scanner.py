@@ -35,9 +35,14 @@ class SuspiciousImportScanner:
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
-                        self._check_library(alias.name)
+                        # Extrai o módulo base (ex: 'os.path' vira 'os')
+                        base_module = alias.name.split('.')[0]
+                        self._check_library(base_module)
                 elif isinstance(node, ast.ImportFrom):
-                    self._check_library(node.module)
+                    # Garante que o módulo não é None (evita quebra em imports relativos)
+                    if node.module:
+                        base_module = node.module.split('.')[0]
+                        self._check_library(base_module)
 
         except SyntaxError:
             print("[-] Error: Target is not a valid Python script.")
