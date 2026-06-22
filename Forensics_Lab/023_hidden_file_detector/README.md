@@ -1,43 +1,34 @@
 # Hidden Artifact Detector (Project 023)
 
-A forensic triage utility that bypasses standard shell visibility to
-expose hidden configuration files, scripts, and persistent backdoors
-masked by the dotfile (.) convention.
+A forensic triage utility that bypasses standard shell visibility to expose hidden configuration files, deep-nested scripts, and persistent backdoors masked by the dotfile (`.`) convention.
 
 ## Technical Explanation
 
--   **Dotfile Enumeration:** Performs direct filesystem listing to
-    enumerate all directory entries, explicitly bypassing the standard
-    shell\'s exclusion of dot-prefixed artifacts.
--   **Forensic Triage:** Automates the search for hidden configuration
-    stores (*.bashrc*, *.profile*) or hidden malicious directories often
-    used by threat actors to persist within the environment.
+* **Recursive Tree Traversal:** Utilizes `os.walk` to execute deep structural scans through target directory branches, eliminating the critical blind spots left behind by shallow, single-level inspection tools.
+* **Dual-State Object Separation:** Tracks and evaluates filesystem entities using separate inner loops for directories and files. This allows the tool to isolate entire masked directories alongside isolated hidden script footprints.
+* **CLI Parameter Standardization:** Implements automated command-line argument processing (`sys.argv`) featuring a graceful inline fallback to the active working directory (`"."`) if no explicit target scope is supplied by the operator.
 
 ## Problems Solved
 
-1.  **Backdoor Concealment:** Exposes malicious scripts or hidden
-    directories created by attackers to maintain a foothold in the
-    target system.
-2.  **Persistence Discovery:** Locates modified shell environment
-    configurations that automatically trigger malicious payloads upon
-    user login.
-3.  **Forensic Visibility:** Provides a quick audit of the directory\'s
-    contents that may be invisible in typical GUI file browsers or
-    standard CLI output.
+* **Deep-Nested Backdoor Concealment:** Exposes malicious payloads, stagers, or tools hidden deep within legitimate application subdirectories (e.g., `.config/` or `.local/`) that easily deceive shallow directory lists.
+* **Persistence Vector Discovery:** Locates modified shell profile structures (such as hidden `.bashrc` or `.profile` files) weaponized by threat actors to execute arbitrary commands upon user interaction.
+* **Evasion Countermeasures:** Provides an absolute, configuration-agnostic view of storage media, ensuring local shell aliases (like a hijacked `ls` command) cannot hide malicious files from the forensic analyst.
 
-## Design Decisions: \"Why this instead of that?\"
+## Design Decisions: "Why this instead of that?"
 
-  ------------------ ------------------ -----------------------------------------------------------------------------------------------------------------------
-  **Detection**      Dot-Prefix Logic   Uses native OS standards to ensure 100% detection coverage of hidden items without false positives.
-  **I/O Strategy**   *os.listdir*       Queries the kernel filesystem index directly, preventing local aliases or environment settings from hiding real data.
-  ------------------ ------------------ -----------------------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Traversal Method** | Recursive `os.walk` | Shallow listing (`os.listdir`) completely misses persistent backdoors hidden inside sub-folders. True recursive sweeping maps the entire tree. |
+| **Object Isolation** | Split `dirs` / `files` Loops | Attackers often hide tooling inside an entirely hidden folder structure. Distinguishing objects clarifies the target's forensic architecture. |
+| **Execution Flow** | CLI Argument + Default Fallback | Bypasses slow interactive queries (`input()`), enabling rapid manual triage as well as automated multi-directory auditing via bash loops. |
 
 ## Usage
 
-from 023_hidden_file_detector import HiddenFileDetector\
-\
-\# Define the suspicious directory target\
-detector = HiddenFileDetector(\"/home/user/.hidden_space\")\
-\
-\# Execute scan\
-detector.scan()
+This tool is optimized for command-line interface (CLI) execution. Pass the target path as a terminal argument, or omit it to scan your current working directory:
+
+```bash
+# Scan a specific directory target
+python hidden_detector.py /home/user/evidence_folder
+
+# Scan the current directory automatically (Fallback mode)
+python hidden_detector.py
