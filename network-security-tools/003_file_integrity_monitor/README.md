@@ -39,7 +39,7 @@ content deviates from that fingerprint.
 
 ## Usage
 
-from project_3_file_integrity_monitor import IntegrityMonitor\
+from file_monitor import IntegrityMonitor\
 \
 monitor = IntegrityMonitor()\
 \# Get original hash\
