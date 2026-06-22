@@ -41,7 +41,7 @@ lengths.
 
 ## Usage
 
-from project_4_dns_anomaly_detector import DNSAnomalyDetector\
+from dns_detector.py import DNSAnomalyDetector\
 \
 detector = DNSAnomalyDetector()\
 status, reason = detector.is_suspicious(\"exemplo.com\")\
