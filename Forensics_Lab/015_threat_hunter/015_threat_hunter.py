@@ -1,33 +1,45 @@
 import psutil
 import datetime
+import time
+import ipaddress
 
 class ThreatHunter:
-    """
-    Performs live forensics to detect volatile indicators of compromise (IoCs).
-    Scans for high-CPU rogue processes (miners) and untrusted external network connections.
-    """
+    
     def __init__(self, cpu_threshold=20.0):
         self.cpu_threshold = cpu_threshold
-        # RFC 1918 and local loopback prefixes to filter internal traffic
-        self.local_prefixes = ("127.", "192.168.", "10.", "172.")
 
     def scan_processes(self):
-        """Audits the process table to flag high resource consumption."""
         print(f"\n[+] SCANNING PROCESSES (Threshold: {self.cpu_threshold}%)")
         print("-" * 50)
 
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'username']):
-            try:
-                cpu_usage = proc.info['cpu_percent']
-                # psutil can return None for CPU percent on initial check windows
-                if cpu_usage and cpu_usage > self.cpu_threshold:
-                    print(f"    [ALERT] High CPU: {proc.info['name']} (PID: {proc.info['pid']})")
-                    print(f"            Usage: {cpu_usage}% | User: {proc.info['username']}")
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+        try:
+            processes = list(psutil.process_iter())
+            for proc in processes:
+                try:
+                    proc.cpu_percent()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
+            time.sleep(0.2)
+
+            for proc in processes:
+                try:
+                    cpu_usage = proc.cpu_percent()
+                    if cpu_usage and cpu_usage > self.cpu_threshold:
+                        name = proc.name()
+                        pid = proc.pid
+                        try:
+                            username = proc.username()
+                        except psutil.AccessDenied:
+                            username = "Access Denied"
+                        print(f"    [ALERT] High CPU: {name} (PID: {pid})")
+                        print(f"            Usage: {cpu_usage}% | User: {username}")
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+        except Exception as e:
+            print(f"[-] Error scanning processes: {e}")
 
     def scan_network_connections(self):
-        """Inspects active network sockets to flag unverified external endpoints."""
         print("\n[+] ANALYZING ACTIVE NETWORK CONNECTIONS")
         print("-" * 50)
 
@@ -39,10 +51,15 @@ class ThreatHunter:
                     r_addr = f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else "N/A"
                     remote_ip = conn.raddr.ip if conn.raddr else ""
 
-                    # Identify if destination ip falls outside corporate/local boundaries
-                    is_external = remote_ip and not remote_ip.startswith(self.local_prefixes)
-                    status = "[EXTERNAL]" if is_external else "[INTERNAL]"
+                    is_external = False
+                    if remote_ip:
+                        try:
+                            ip_obj = ipaddress.ip_address(remote_ip)
+                            is_external = not (ip_obj.is_private or ip_obj.is_loopback)
+                        except ValueError:
+                            is_external = False
 
+                    status = "[EXTERNAL]" if is_external else "[INTERNAL]"
                     print(f"    {status:<10} {l_addr} --> {r_addr}")
         except psutil.AccessDenied:
             print("[-] Error: Insufficient privileges to audit network sockets. Run as Root/Admin.")
