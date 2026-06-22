@@ -51,8 +51,8 @@ internal states.
   ------------------- -------------------------- -------------------------------------------------------------------------------------------------------------------
 
 ## Usage
+This library is designed to be imported into your forensic or defensive automation scripts. Ensure the file is saved as network_guard.py
 
-from project_1_network_guard import NetworkGuard\
 \
 guard = NetworkGuard()\
 \
