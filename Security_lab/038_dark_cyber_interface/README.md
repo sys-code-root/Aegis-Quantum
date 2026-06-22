@@ -26,7 +26,7 @@ clean menu hierarchies to streamline workflow execution paths.
 
 ## Usage
 
-from 038_dark_cyber_interface import DarkCyberInterface\
+from dark_interface.py import DarkCyberInterface\
 \
 \# Start the dark interface engine\
 app = DarkCyberInterface()\
