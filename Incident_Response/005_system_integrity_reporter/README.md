@@ -1,39 +1,33 @@
-# System Integrity Reporter (Project 5)
+# System Integrity Reporter (Project 005)
 
-A professional, modular utility to capture system metadata. This is a
-foundational script for forensic labs to quickly establish the
-environment baseline of a target machine.
+A professional, modular utility designed to capture strict system metadata. This tool serves as a foundational reconnaissance script for forensic laboratories to rapidly establish the immutable environment baseline of a target machine.
 
 ## Technical Explanation
 
--   **Metadata Extraction:** Uses the *platform* library to interface
-    directly with the host OS, providing reliable environment details
-    without external dependencies.
--   **Context Awareness:** Detects whether the script is running as a
-    Python source file or a compiled binary (*sys.frozen*), which is
-    crucial when auditing environments where scripts may have been
-    packed by tools like PyInstaller.
+* **Direct OS Interfacing:** Utilizes the native `platform` library to interface directly with the host operating system and hardware abstraction layer, providing deterministic environment details without relying on fragile external dependencies.
+* **Execution Context Awareness:** Dynamically probes the runtime state using `getattr(sys, 'frozen', False)`. This detects whether the engine is running as a raw Python script or as a compiled standalone binary (e.g., packed via PyInstaller), ensuring path resolution remains stable in production.
+* **Stateless Architecture:** Implemented using class wrappers and `@staticmethod` decorators, allowing the reporting logic to be invoked instantly across massive Incident Response pipelines without the overhead of memory state instantiation.
 
 ## Problems Solved
 
-1.  **Environment Baseline:** Quickly documents the OS architecture and
-    version during the \"Reconnaissance\" phase of an audit.
-2.  **Binary Verification:** Helps identify if the code is running as an
-    authorized compiled tool or as an raw script in the field.
-3.  **Automated Auditing:** Standardizes how system information is
-    saved, allowing for easier correlation in forensic timelines.
+* **Environment Baselining:** Rapidly documents and vaults the exact OS architecture, release version, and kernel build during the critical "Reconnaissance" phase of a forensic audit.
+* **Binary Integrity Verification:** Helps investigators mathematically identify if the running code is operating as an authorized compiled tool or as an injected raw script in the field.
+* **Automated Audit Standardization:** Standardizes how system information is structurally saved, allowing for seamless data ingestion and correlation inside centralized forensic timelines.
 
-## Design Decisions: \"Why this instead of that?\"
+## Design Decisions: "Why this instead of that?"
 
-  --------------- ---------------------------- --------------------------------------------------------------------------------------------------------------------------
-  **Structure**   *class* + *staticmethod*     Keeps the code clean and reusable for larger IR (Incident Response) engines without needing state.
-  **Metadata**    *platform* library           It is a built-in Python standard; it avoids dependencies and works across all platforms (Windows, Linux, macOS).
-  **Context**     *getattr(sys, \'frozen\')*   This is the official way to detect if a script was bundled into an *.exe*, preventing errors in production environments.
-  --------------- ---------------------------- --------------------------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Structure** | `class` + `@staticmethod` | Keeps the codebase highly cohesive and reusable for larger Incident Response engines without requiring unnecessary memory state allocations. |
+| **Metadata Core** | `platform` Library | It is a built-in standard. Relying purely on native modules guarantees cross-platform reliability (Windows, Linux, macOS) on isolated, air-gapped forensic hosts. |
+| **Context Check** | `getattr(sys, 'frozen')` | The official Pythonic mechanism to detect if a script was bundled into an `.exe` or ELF binary, preventing catastrophic path resolution crashes in live environments. |
 
 ## Usage
 
-from 005_system_integrity_reporter import SystemIntegrityReporter\
-\
-reporter = SystemIntegrityReporter()\
-reporter.generate_report(\"my_audit.log\")
+This utility can be integrated into broader automation scripts or run standalone. Ensure the file is named cleanly (e.g., `system_reporter.py`) to allow seamless imports.
+
+Run directly via the command line interface:
+
+```bash
+# Generate a baseline report in the current directory
+python system_reporter.py
