@@ -2,13 +2,11 @@ import os
 import datetime
 import binascii
 import re
+import sys
 
 class BinaryExtractor:
-    """
-    Performs static forensic analysis on binary files.
-    Extracts MAC timelines, verifies magic number headers, and isolates
-    human-readable strings to discover indicators of compromise (IoCs).
-    """
+    """Performs static forensic analysis on binary files to extract timelines, headers, and strings."""
+    
     def __init__(self, target_path):
         self.target_path = target_path
         self.file_name = os.path.basename(target_path)
@@ -38,7 +36,6 @@ class BinaryExtractor:
                 header = f.read(4)
                 hex_sig = binascii.hexlify(header).decode().lower()
 
-                # Check 4 bytes first, fallback to 2 bytes if needed (like 4d5a)
                 result = signatures.get(hex_sig, signatures.get(hex_sig[:4], "UNKNOWN"))
 
                 print(f"\n[+] HEADER ANALYSIS")
@@ -48,27 +45,32 @@ class BinaryExtractor:
             print(f"[-] Error reading header: {e}")
 
     def extract_strings(self):
-        """Extracts ASCII strings of 4 or more characters from the raw binary content."""
+        """Extracts ASCII strings of 4 or more characters securely using byte regex."""
         print(f"\n[+] EXTRACTING HUMAN-READABLE STRINGS (TOP 15)")
         try:
             with open(self.target_path, "rb") as f:
-                content = f.read().decode(errors='ignore')
-                # Regex looks for alphanumeric or basic punctuation strings (minimum length: 4)
-                found_strings = re.findall(r'[a-zA-Z0-9/._-]{4,}', content)
+                content_bytes = f.read()
+                
+                found_bytes = re.findall(rb'[a-zA-Z0-9/._-]{4,}', content_bytes)
 
-                if not found_strings:
+                if not found_bytes:
                     print("    No strings found.")
                     return
 
-                for s in found_strings[:15]:
-                    print(f"    Found: {s}")
+                for b in found_bytes[:15]:
+                 
+                    print(f"    Found: {b.decode(errors='ignore')}")
         except Exception as e:
-           print(f"[-] Error extracting strings: {e}")
+            print(f"[-] Error extracting strings: {e}")
 
 if __name__ == "__main__":
-    path = input("Enter the full path of the file: ")
-    if os.path.exists(path):
-        extractor = BinaryExtractor(path)
+    if len(sys.argv) < 2:
+        print("Usage: python binary_extractor.py <path_to_binary>")
+        sys.exit(1)
+
+    target_path = sys.argv[1]
+    if os.path.exists(target_path):
+        extractor = BinaryExtractor(target_path)
         extractor.get_file_stats()
         extractor.verify_header()
         extractor.extract_strings()
