@@ -1,49 +1,33 @@
 # ARP & ICMP Active Network Scanner (Project 019)
 
-A network reconnaissance and forensics asset-mapping module designed to
-identify live targets inside local network routing domains.
+A network reconnaissance and forensics asset-mapping module designed to identify live targets inside local network routing domains.
 
 ## Technical Explanation
 
--   **Layer 2 Broadcast Injection:** Bundles hardware Ethernet frames
-    (*ff:ff:ff:ff:ff:ff*) to force every networking interface switch on
-    the local wire to process the request.
--   **ARP Translation Mining:** Intercepts incoming protocol replies to
-    extract raw source bindings (*received.psrc* and *received.hwsrc*),
-    mapping IPs directly to physical hardware NICs.
--   **Network-Layer Inversion:** Compiles manual ICMP Echo Request
-    tokens wrapped inside Time-To-Live (TTL) IP packets, assessing
-    remote availability without relying on high-level OS socket
-    frameworks.
+* **Layer 2 Broadcast Injection:** Bundles hardware Ethernet frames (`ff:ff:ff:ff:ff:ff`) to force every networking interface switch on the local wire to process the tracking packet.
+* **ARP Translation Mining:** Intercepts incoming protocol replies to extract raw source bindings (`received.psrc` and `received.hwsrc`), mapping IP addresses directly to physical hardware NICs.
+* **Network-Layer Inversion:** Compiles manual ICMP Echo Request tokens wrapped inside Time-To-Live (TTL) IP packets, assessing remote availability without relying on high-level OS socket frameworks.
+* **Multi-Level Signal Trapping:** Implements localized and global error interceptors for software interruption signals (`KeyboardInterrupt`), ensuring the operator can instantly terminate a broad subnet sweep without crashing the system stack.
+* **Input Validation Sanitization:** Features runtime verification via string manipulation (`.strip()`) to capture empty or malformed targets before they reach the raw network socket interface, preventing low-level library faults.
 
 ## Problems Solved
 
-1.  **Rogue Hardware Localization:** Exposes hidden or unauthorized
-    computers connected to local infrastructure that bypass standard
-    directory listings.
-2.  **IP-to-MAC Binding Logs:** Provides authentic layer 2 hardware
-    addressing records, preventing attackers from hiding behind spoofed
-    dynamic IP parameters.
-3.  **Defensive Firewal Triage:** Evaluates if a compromised endpoint
-    drops ICMP packages while reacting to explicit network queries.
+* **Rogue Hardware Localization:** Exposes hidden, forgotten, or unauthorized computers connected to local infrastructure that intentionally bypass standard directory listings or active domain controllers.
+* **IP-to-MAC Binding Logs:** Provides authentic Layer 2 hardware addressing records, preventing malicious agents from hiding their infrastructure footprints behind spoofed or dynamic IP parameters.
+* **Defensive Firewall Triage:** Evaluates host responsiveness and policies to detect if a compromised or target endpoint drops ICMP packages while reacting to explicit network layer queries.
 
-## Design Decisions: \"Why this instead of that?\"
+## Design Decisions: "Why this instead of that?"
 
-  ------------------------ ---------------------------------- -------------------------------------------------------------------------------------------------------------------------------------
-  **Discovery Protocol**   ARP Protocol Scanning              Way faster and more reliable than ICMP scanning inside local networks, as systems cannot ignore local ARP requests.
-  **Packet Control**       Natively compiled Layer 2 frames   Grants full control over the header fields, bypassing the operational restrictions of standard Python socket connections.
-  **Response Model**       *sr1* Framework Call               Perfect execution model for sequential target tracking; stops reading immediately after capturing the first confirmation handshake.
-  ------------------------ ---------------------------------- -------------------------------------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Discovery Protocol** | ARP Protocol Scanning | Way faster and more reliable than ICMP scanning inside local networks, as systems cannot ignore or drop local ARP broadcast requests. |
+| **Packet Control** | Natively Compiled Frames | Grants full control over the header fields via Scapy layering, bypassing the strict operational restrictions of standard Python socket connections. |
+| **Response Model** | `sr1` Framework Call | Perfect execution model for sequential target probing; stops reading immediately after capturing the first confirmation handshake from the host. |
+| **Signal Resilience** | Multi-Tiered Exception Traps | Standard terminal loops crash abruptly on user breaks; custom signal isolation keeps the program clean and operational during active recon workflows. |
 
 ## Usage
 
-from 019_network_scanner import NetworkScanner\
-\
-\# Initialize the discovery scanner engine\
-scanner = NetworkScanner()\
-\
-\# Example 1: Execute full local mapping sweep\
-scanner.arp_scan(\"192.168.1.0/24\")\
-\
-\# Example 2: Probe a single host endpoint directly\
-scanner.icmp_ping(\"10.0.0.15\")
+This tool features an interactive reconnaissance menu. Run the application with root or administrative privileges to enable raw socket operations:
+
+```bash
+sudo python network_scanner.py
