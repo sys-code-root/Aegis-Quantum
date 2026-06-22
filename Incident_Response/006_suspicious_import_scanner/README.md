@@ -26,4 +26,4 @@ A forensic triage tool designed to identify malicious intent in Python scripts b
 This tool is optimized for command-line interface (CLI) triage. Run the scanner by passing the target script path as an argument:
 
 ```bash
-python suspicious_import_scanner.py path/to/target_script.py
+python import_scanner.py path/to/target_script.py
