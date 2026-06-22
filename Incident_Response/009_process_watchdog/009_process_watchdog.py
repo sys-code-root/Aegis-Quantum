@@ -1,51 +1,48 @@
-import psutil
+import sys
 import time
+from datetime import datetime
+import psutil
 
 class ProcessWatchdog:
-    """
-    Enforces a process whitelist policy by automatically terminating 
-    unauthorized processes. Useful for securing forensic workstations 
-    or focus environments.
-    """
+
     def __init__(self, allowed_processes):
-        self.whitelist = [name.lower() for name in allowed_processes]
-        # Always protect the Python interpreter to keep the watchdog alive
-        self.whitelist.extend(["python", "python.exe"])
+        self.whitelist = {name.lower() for name in allowed_processes}
+        self.whitelist.update({"python", "python.exe", "system", "idle"})
 
     def enforce_policy(self):
-        """Scans running processes and kills those not in the whitelist."""
-        print(f"[*] Policy enforcement: {time.ctime()}")
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"[*] Policy enforcement: {current_time}")
 
         for proc in psutil.process_iter(['pid', 'name']):
             try:
-                name = proc.info['name'].lower()
+                name = proc.info['name']
                 pid = proc.info['pid']
 
-                # Filter out critical system processes (PID < 100 on Windows)
-                if pid < 100:
+                if not name:
+                    continue
+
+                name = name.lower()
+
+                if pid in (0, 4) or name in ("system", "registry", "smss.exe", "csrss.exe"):
                     continue
 
                 if name not in self.whitelist:
                     print(f"[!] ALERT: Unauthorized process detected: {name} (PID: {pid})")
-                    p = psutil.Process(pid)
-                    p.terminate()
+                    proc.terminate()
                     print(f"[+] SUCCESS: {name} (PID: {pid}) terminated.")
-
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 continue
 
-    def start_protection(self, interval=10):
-        """Starts the watchdog in a continuous loop."""
-        print("--- WATCHDOG ACTIVE ---")
-        try:
-            while True:
-                self.enforce_policy()
-                time.sleep(interval)
-        except KeyboardInterrupt:
-            print("\n[!] Watchdog deactivated.")
+        def start_protection(self, interval=5):
+            print("--- WATCHDOG ACTIVE ---")
+            try:
+                while True:
+                    self.enforce_policy()
+                    time.sleep(interval)
+            except KeyboardInterrupt:
+                print("\n[!] Watchdog deactivated.")
 
 if __name__ == "__main__":
-    # Define authorized apps for your specific study/work context
-    my_allowed = ["cmd.exe", "powershell.exe", "code.exe", "chrome.exe", "explorer.exe"]
-    watchdog = ProcessWatchdog(my_allowed)
+    allowed = sys.argv[1:] if len(sys.argv) > 1 else ["cmd.exe", "powershell.exe", "code.exe", "chrome.exe", "explorer.exe", "bash", "zsh"]
+    watchdog = ProcessWatchdog(allowed)
     watchdog.start_protection()
