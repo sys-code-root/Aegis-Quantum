@@ -2,24 +2,14 @@ import hashlib
 import re
 
 class DNSAnomalyDetector:
-    """
-    Analyzes domain names to detect potential DNS Tunneling or malicious exfiltration
-    based on entropy and character length.
-    """
 
     def __init__(self, max_length=25):
         self.max_length = max_length
 
     def is_suspicious(self, domain):
-        """
-        Determines if a domain is suspicious based on length and entropy.
-        """
-        # Rule 1: Abnormal length
         if len(domain) > self.max_length:
             return True, "Abnormal length"
 
-        # Rule 2: High character randomness (simplified entropy check)
-        # Malicious domains often use base64-like strings (e.g., a1b2c3d4.attacker.com)
         digit_count = len(re.findall(r'\d', domain))
         if digit_count / len(domain) > 0.3:
             return True, "High character randomness"
@@ -28,10 +18,8 @@ class DNSAnomalyDetector:
 
     @staticmethod
     def get_domain_fingerprint(domain):
-        """Generates a SHA-256 hash of a domain for log correlation."""
         return hashlib.sha256(domain.encode()).hexdigest()[:16]
 
-# Example usage
 if __name__ == "__main__":
     detector = DNSAnomalyDetector()
 
