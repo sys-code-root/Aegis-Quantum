@@ -1,51 +1,32 @@
 # Network Inventory & ARP Poisoning Monitor (Project 020)
 
-An advanced network forensics module built to inventory network
-endpoints, map hardware vendor identities, and capture active
-Man-in-the-Middle (MitM) ARP spoofing attacks.
+An advanced network forensics module built to inventory network endpoints, map hardware vendor identities, and capture active Man-in-the-Middle (MitM) ARP spoofing attacks.
 
 ## Technical Explanation
 
--   **OUI Resolution Pipelines:** Strips device MAC addresses to target
-    public API databases, mapping vendor metrics to verify supply chain
-    asset classes.
--   **Stateful Cache Auditing:** Builds an in-memory dictionary tracking
-    state parameters (*{IP: MAC}*). This baseline serves as a
-    source-of-truth registry to calculate unexpected changes.
--   **Passive Traffic Dissection:** Binds sniffer hooks to capture
-    opcode 2 (*ARP Reply*) frames, validating incoming data packages
-    against the established baseline profile.
+* **OUI Resolution Pipelines:** Strips device MAC addresses to target public API databases, injecting real browser headers and intercepting API constraints (like HTTP `429 Rate Limited`) to ensure precise hardware supplier telemetry.
+* **Persistent Cache Baseline:** Builds an in-memory dictionary tracking state parameters (`{IP: MAC}`). This inventory serves as an immutable source-of-truth registry that resists manipulation or self-contamination during an active threat vector.
+* **Passive Traffic Dissection:** Binds asynchronous sniffing hooks to capture Opcode 2 (`ARP Reply`) frames, validation-checking incoming hardware packets against the cached network blueprint.
+* **Dynamic Environment Learning:** Automatically populates and scales the internal monitoring index with new legitimate device profiles seen on the wire if the live capture mode is initiated without a pre-scanned baseline.
 
 ## Problems Solved
 
-1.  **Man-in-the-Middle Interception:** Instantly exposes network
-    attackers attempting to divert traffic by mapping their malicious
-    network cards to legitimate gateway IP addresses.
-2.  **Hardware Spoof Detection:** Identifies network anomalies where
-    corporate assets suddenly report changing hardware characteristics.
-3.  **Asset Supply Chain Auditing:** Automates physical vendor
-    enumeration across subnets to isolate foreign, unapproved hardware
-    equipment instantly.
+* **Man-in-the-Middle Interception:** Instantly exposes adversarial nodes trying to intercept or route network data by hijacking the local gateway's logical IP mapping.
+* **Persistent Spoof Alerting:** Maintains defensive alerts active throughout the entire lifespan of the attack, blocking the malicious machine from silently poisoning or overwriting the tool's verified tracking table.
+* **Asset Supply Chain Auditing:** Automates physical vendor enumeration across live network segments to isolate foreign, unapproved, or high-risk rogue hardware components instantly.
 
-## Design Decisions: \"Why this instead of that?\"
+## Design Decisions: "Why this instead of that?"
 
-  --------------------------- ----------------------------- --------------------------------------------------------------------------------------------------------------------------
-  **Verification Strategy**   Stateful Dictionary Lookup    Significantly faster and more reliable than querying remote routers repeatedly to confirm interface states.
-  **API Integration**         Integrated *time.sleep*       Protects the analysis environment from getting rate-limited or banned by public lookup servers during broad scans.
-  **Filter Selection**        Strict BPF *\"arp\"* Filter   Offloads irrelevant protocol overhead at the kernel layer, focusing processing power entirely on target address strings.
-  --------------------------- ----------------------------- --------------------------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Verification Strategy** | Stateful Dictionary Lookup | Significantly faster and more reliable than querying remote routers repeatedly to confirm interface states. |
+| **API Integration** | Headers & Rate Handling | Standard library requests trigger automated blocklists; spoofed User-Agents and explicit status code routing maintain lookup availability. |
+| **Cache Resilience** | Immutable Alert Baseline | Modifying the cache post-alert auto-contaminates the engine; retaining the original true MAC guarantees persistent warning triggers. |
+| **Filter Selection** | Strict BPF "arp" Filter | Offloads irrelevant protocol overhead at the kernel layer, focusing processing power entirely on target address structures. |
 
 ## Usage
 
-from 020_network_inventory import NetworkInventory\
-\
-\# Initialize the stateful network monitor\
-inv = NetworkInventory()\
-\
-\# Step 1: Baseline local assets (Fills the verification lookup map)\
-inv.scan_and_identify(\"192.168.1.0/24\")\
-\
-\# Step 2: Launch passive background interception (Requires
-administrative root access)\
-from scapy.all import sniff\
-sniff(filter=\"arp\", prn=inv.monitor_arp_changes, store=0)
+This tool is optimized for interactive terminal operations. Execute the script using root or administrative permissions to allow raw network socket access:
+
+```bash
+sudo python network_inventory.py
