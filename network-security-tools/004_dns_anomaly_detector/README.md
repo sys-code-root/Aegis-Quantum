@@ -1,50 +1,42 @@
-# DNS Anomaly Detector (Project 4)
+# DNS Anomaly Detector (Project 004)
 
-A security utility designed to identify potentially malicious DNS
-queries, helping to detect data exfiltration attempts through DNS
-tunneling.
-
-## Purpose
-
-DNS is the backbone of network resolution but is frequently abused for
-\"DNS Tunneling\"---where sensitive data is encoded into subdomains.
-This tool acts as a lightweight filter to audit DNS logs and flag
-domains that exhibit \"high-entropy\" (random) patterns or abnormal
-lengths.
+A forensic security utility designed to identify potentially malicious DNS queries and detect data exfiltration vectors, specifically targeting DNS Tunneling techniques.
 
 ## Technical Explanation
 
--   **Heuristic Analysis:** Uses regular expressions to calculate the
-    ratio of numeric digits to alphabetic characters, identifying
-    domains that look like encoded payloads rather than human-readable
-    URLs.
--   **Fingerprinting:** Uses *SHA-256* to create a deterministic ID for
-    every domain encountered, allowing security teams to correlate
-    blocked domains across different log files.
+* **Heuristic Anomaly Analysis:** Utilizes optimized Regular Expressions to calculate the ratio of numeric digits to alphabetic characters within subdomains. This effectively flags "high-entropy" domains that resemble encoded binary payloads rather than human-readable URLs.
+* **Deterministic Fingerprinting:** Implements `SHA-256` hashing to create unique, indexable identifiers for every domain encountered. This enables security teams to instantly correlate anomalous traffic patterns across distributed log files.
+* **Rapid Triage Logic:** Operates on length-threshold and randomness-ratio heuristics. By filtering out standard traffic based on these parameters, the engine reduces noise for security analysts during the triage phase.
 
 ## Problems Solved
 
-1.  **Data Exfiltration Detection:** Identifies attempts to smuggle data
-    out via DNS subdomains.
-2.  **Alerting:** Provides a programmatic way to flag \"weird\" traffic
-    for manual security review.
-3.  **Log Correlation:** Creates consistent IDs for domains, helping
-    build a history of suspicious behavior.
+* **Data Exfiltration Detection:** Actively identifies attempts to smuggle data out via DNS subdomains, a common bypass for firewalls that do not inspect DNS traffic.
+* **Automated Alerting:** Provides a programmatic gateway to flag suspicious traffic, transforming raw logs into actionable intelligence for manual security review.
+* **Log Correlation:** Generates consistent, fixed-length IDs for domains, ensuring that evidence of suspicious behavior can be tracked and indexed across disparate network datasets.
 
-## Design Decisions
+## Design Decisions: "Why this instead of that?"
 
-  --------------------- --------------------- -----------------------------------------------------------------------------------------------------------------
-  **Heuristic Logic**   Regex (*re* module)   Offers a low-overhead, high-speed way to filter thousands of DNS queries in real-time.
-  **Fingerprint**       *SHA-256*             Provides a fixed-length string (truncated to 16 chars) which is perfect for database indexing.
-  **Algorithm**         Length/Randomness     DNS Tunneling tools (like *iodine*) create very distinct patterns; length checks are the first line of defense.
-  --------------------- --------------------- -----------------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Heuristic Logic** | `re` (Regex) Module | Provides low-overhead, high-speed filtering capabilities, enabling real-time analysis of thousands of queries per second. |
+| **Fingerprinting** | `SHA-256` (Truncated) | Produces a collision-resistant unique ID. Truncating to 16 chars provides an optimal balance between uniqueness and database indexing performance. |
+| **Detection Algorithm** | Length/Randomness Ratio | DNS Tunneling tools (e.g., *iodine*, *dnscat2*) create distinct, high-entropy patterns. These heuristics act as the first line of defense before full packet inspection. |
+| **Performance** | Modular Methods | By keeping logic in static methods, the detector avoids object instantiation overhead, allowing for seamless integration into high-frequency packet sniffers. |
 
 ## Usage
 
-from dns_detector.py import DNSAnomalyDetector\
-\
-detector = DNSAnomalyDetector()\
-status, reason = detector.is_suspicious(\"exemplo.com\")\
-\
-if status:\
-print(f\"ALERT: {reason}\")
+This utility is designed to be imported into your existing network monitoring pipelines. Ensure the file is saved as `dns_detector.py`.
+
+```python
+from dns_detector import DNSAnomalyDetector
+
+# Initialize the detection engine
+detector = DNSAnomalyDetector(max_length=25)
+
+# Validate a domain against security heuristics
+domain = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6.attacker.com"
+is_suspicious, reason = detector.is_suspicious(domain)
+
+if is_suspicious:
+    print(f"ALERT: {reason}")
+    print(f"Domain Fingerprint: {detector.get_domain_fingerprint(domain)}")
