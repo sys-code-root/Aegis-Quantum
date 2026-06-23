@@ -1,49 +1,41 @@
-# File Integrity Monitor (Project 3)
+# File Integrity Monitor (Project 003)
 
-A security utility designed to detect unauthorized modifications to
-system files or sensitive configurations by performing continuous
-cryptographic integrity checks.
-
-## Purpose
-
-In cybersecurity, an attacker\'s primary goal is often to alter system
-configuration files to gain persistence. This tool provides a baseline
-\"fingerprint\" of a file and alerts the administrator if the file\'s
-content deviates from that fingerprint.
+A high-performance security utility engineered to detect unauthorized modifications to system files or sensitive configurations by performing continuous cryptographic integrity verification.
 
 ## Technical Explanation
 
--   **Chunk-based Hashing:** Uses 4096-byte blocks to read files,
-    ensuring that the script can handle large files without exhausting
-    system memory.
--   **Cryptographic Verification:** Uses *SHA-256* to create a secure
-    hash. Even a change of a single character in the file will result in
-    a completely different hash (Avalanche Effect).
+* **Memory-Efficient Streaming I/O:** Utilizes chunk-based reading (4096-byte blocks) to process files. By streaming the file into memory in small segments rather than loading it entirely, the monitor handles massive log files and system binaries without risking system RAM exhaustion.
+* **Cryptographic Baseline Verification:** Implements the `SHA-256` hashing algorithm to generate a unique digital "fingerprint." Due to the "Avalanche Effect," even a single-bit modification in the target file results in a completely distinct hash, ensuring absolute tamper detection.
+* **Stateless Utility Architecture:** Encapsulated via `@staticmethod` decorators. This design allows the integrity verification logic to be imported and executed instantly within larger Incident Response orchestrators without the memory overhead of class instantiation.
 
 ## Problems Solved
 
-1.  **Unauthorized Tampering:** Detects if configuration files (like
-    *hosts*, *.ssh/authorized_keys*, or app settings) were modified.
-2.  **Audit Trail:** Provides a programmatic way to verify system state
-    during a security incident.
-3.  **Persistence Detection:** Helps identify if a backdoor was injected
-    into your script files.
+* **Rootkit/Backdoor Detection:** Instantly identifies if critical system configurations (e.g., `/etc/hosts`, `.ssh/authorized_keys`, or app settings) have been injected with malicious payloads or persistence mechanisms.
+* **Forensic Audit Integrity:** Provides a programmatic, reproducible method to verify the state of a system during and after a security incident, creating a reliable chain of custody for log files.
+* **Configuration Drift Prevention:** Monitors production environments for unauthorized "hot-patching," ensuring that deployed infrastructure remains aligned with defined security baselines.
 
-## Design Decisions
+## Design Decisions: "Why this instead of that?"
 
-  ----------------------- ----------------- -----------------------------------------------------------------------------------------------------------
-  **Hashing Algorithm**   *SHA-256*         Provides an ideal balance between security and performance for integrity monitoring.
-  **I/O Strategy**        Chunked Reading   Allows the tool to monitor large log files without loading them entirely into RAM.
-  **Modularity**          *staticmethod*    The hash calculation logic is stateless, making it easy to import into other security automation scripts.
-  ----------------------- ----------------- -----------------------------------------------------------------------------------------------------------
+| Category | Decision | Why? |
+| :--- | :--- | :--- |
+| **Hashing Algorithm** | `SHA-256` | Offers the optimal balance between collision resistance and computational performance, making it the industry standard for integrity monitoring. |
+| **I/O Strategy** | Chunked Reading | Reading in 4KB buffers is a systems-engineering best practice; it prevents the tool from crashing when auditing large binary logs or forensic images. |
+| **Modularity** | `staticmethod` | Decoupling the hash calculation from the class instance state ensures the logic is pure, thread-safe, and easily reusable in other automation scripts. |
+| **Loop Control** | `KeyboardInterrupt` | Provides a graceful exit path for forensic analysts to stop the monitoring cycle instantly without leaving orphaned processes or corrupted locks. |
 
 ## Usage
 
-from file_monitor import IntegrityMonitor\
-\
-monitor = IntegrityMonitor()\
-\# Get original hash\
-baseline = monitor.calculate_hash(\"my_config.conf\")\
-\
-\# Start monitor\
-monitor.monitor(\"my_config.conf\", baseline)
+This utility is designed to be imported into your forensic automation pipelines. Ensure the file is saved as `integrity_monitor.py`.
+
+```python
+from integrity_monitor import IntegrityMonitor
+
+monitor = IntegrityMonitor()
+
+# 1. Establish the "Known Good" Baseline
+baseline = monitor.calculate_hash("config_test.txt")
+print(f"Cryptographic Baseline: {baseline}")
+
+# 2. Start the Continuous Integrity Loop
+# This will alert if the file content deviates from the baseline
+monitor.monitor("config_test.txt", baseline, interval=5)
