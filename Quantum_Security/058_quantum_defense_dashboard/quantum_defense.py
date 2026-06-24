@@ -1,109 +1,91 @@
-import os
-import sys
-import psutil
-import customtkinter as ctk
-import oqs
+import hashlib
 from qiskit import QuantumCircuit, transpile
 from qiskit_aer import AerSimulator
-from datetime import datetime
 
-# Graphical environment visual presets (Cyberpunk theme)
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
-
-class QuantumDefenseDashboard:
-    """
-    Unified graphical command center linking process integrity monitoring (Sentinel)
-    with quantum key encapsulation (Kyber768) and QRNG entropy harvesting.
-    """
+class QuantumHashLedger:
     def __init__(self):
-        # Initialize standard Qiskit 1.x high-performance local simulation kernel
-        self.quantum_backend = AerSimulator()
-        # Initialize standard post-quantum lattice KEM engine
-        self.pqc_kem = oqs.KeyEncapsulation("Kyber768")
+        self.simulator = AerSimulator()
+        self.blockchain = []
 
-        # Master GUI Window setup
-        self.root = ctk.CTk()
-        self.root.title("QUANTUM DEFENSE & INTEGRITY SYSTEM")
-        self.root.geometry("900x600")
-
-        self._setup_ui()
-
-    def _setup_ui(self):
-        """Constructs the user interface grid layout blocks."""
-        # Side Control Panel (Navigation Bar)
-        self.sidebar = ctk.CTkFrame(self.root, width=200, corner_radius=0)
-        self.sidebar.pack(side="left", fill="y")
-
-        self.label_title = ctk.CTkLabel(
-            self.sidebar, 
-            text="CORE SECURITY\nSOC SYSTEM", 
-            font=("Orbitron", 18, "bold")
-        )
-        self.label_title.pack(pady=20)
-
-        # Button Command Interactions
-        self.btn_qkey = ctk.CTkButton(
-            self.sidebar, 
-            text="Generate Q-Key", 
-            command=self.generate_quantum_key
-        )
-        self.btn_qkey.pack(pady=10, padx=20)
-
-        self.btn_sentinel = ctk.CTkButton(
-            self.sidebar, 
-            text="Start Sentinel Scan", 
-            command=self.run_sentinel_scan
-        )
-        self.btn_sentinel.pack(pady=10, padx=20)
-
-        # Main Log Output Console
-        self.console = ctk.CTkTextbox(self.root, width=650, height=500)
-        self.console.pack(pady=20, padx=20)
-
-        self.log_message("Security System Online. Operations initialization verified.")
-
-    def log_message(self, message: str):
-        """Appends contextual string outputs to the console log matrix with clear timestamps."""
-        now = datetime.now().strftime("%H:%M:%S")
-        self.console.insert("end", f"[{now}] {message}\n")
-        self.console.see("end")  # Auto-scrolls tracking updates to the newest entry
-
-    def generate_quantum_key(self):
-        """Triggers the physical QRNG pipeline combined with Kyber768 asymmetric state mapping."""
-        self.log_message("Initiating Quantum Entropy Generation...")
-
-        # Construct a 4-qubit register to compile hardware random seeds
-        qc = QuantumCircuit(4)
-        qc.h(range(4))  # Shift all bits into absolute structural superposition
+    def _generate_quantum_bit(self) -> int:
+        qc = QuantumCircuit(1)
+        qc.h(0)
         qc.measure_all()
 
-        # Execute optimized Qiskit 1.x transpilation sequence
-        t_qc = transpile(qc, self.quantum_backend)
-        job = self.quantum_backend.run(t_qc, shots=1)
-        q_result = job.result().get_counts()
+        compiled_qc = transpile(qc, self.simulator)
+        job = self.simulator.run(compiled_qc, shots=1)
+        counts = job.result().get_counts()
+        
+        if not counts:
+            return 0
+        return int(list(counts.keys())[0])
 
-        # Instatiate the post-quantum keyspace material
-        pub_key = self.pqc_kem.generate_keypair()
+    def _generate_quantum_bytes(self, num_bytes: int = 32) -> bytes:
+        byte_list = []
+        for _ in range(num_bytes):
+            byte_value = 0
+            for bit_position in range(8):
+                byte_value |= (self._generate_quantum_bit() << bit_position)
+            byte_list.append(byte_value)
+        return bytes(byte_list)
 
-        self.log_message(f"PQC Public Key Generated: {pub_key.hex()[:30]}...")
-        self.log_message("Entropy source certified via Bell's Inequality simulation metrics.")
+    def generate_lamport_keypair(self) -> tuple:
+        secret_key_0 = [self._generate_quantum_bytes(32) for _ in range(256)]
+        secret_key_1 = [self._generate_quantum_bytes(32) for _ in range(256)]
 
-    def run_sentinel_scan(self):
-        """Scans active operating system process states to assess environment integrity barriers."""
-        self.log_message("Sentinel Process Scan initiated...")
-        process_count = 0
+        public_key_0 = [hashlib.sha256(x).digest() for x in secret_key_0]
+        public_key_1 = [hashlib.sha256(x).digest() for x in secret_key_1]
 
-        # Scans local active memory processes to determine environmental state security
-        for proc in psutil.process_iter(['name']):
-            process_count += 1
+        return (secret_key_0, secret_key_1), (public_key_0, public_key_1)
 
-        self.log_message(f"Sentinel Analysis: {process_count} target threads checked. Environment Integrity: 100%")
+    def sign_transaction(self, message: str, secret_key: tuple) -> list:
+        message_hash = hashlib.sha256(message.encode()).digest()
+        signature = []
 
-    def run(self):
-        """Enters the main window GUI execution thread loop."""
-        self.root.mainloop()
+        for byte in message_hash:
+            for bit_position in range(8):
+                bit = (byte >> bit_position) & 1
+                index = len(signature)
+
+                if bit == 0:
+                    signature.append(secret_key[0][index])
+                else:
+                    signature.append(secret_key[1][index])
+        return signature
+
+    def verify_signature(self, message: str, signature: list, public_key: tuple) -> bool:
+        message_hash = hashlib.sha256(message.encode()).digest()
+
+        for i, byte in enumerate(message_hash):
+            for bit_position in range(8):
+                bit = (byte >> bit_position) & 1
+                index = i * 8 + bit_position
+
+                if index >= len(signature):
+                    return False
+
+                sig_hash = hashlib.sha256(signature[index]).digest()
+                expected_pub = public_key[0][index] if bit == 0 else public_key[1][index]
+
+                if sig_hash != expected_pub:
+                    return False
+        return True
+
+    def add_block(self, transaction_data: str):
+        print(f"[*] Processing ledger transaction input: '{transaction_data}'")
+
+        sk, pk = self.generate_lamport_keypair()
+
+        sig = self.sign_transaction(transaction_data, sk)
+
+        if self.verify_signature(transaction_data, sig, pk):
+            self.blockchain.append({"data": transaction_data, "signature": sig})
+            print("[+] STATUS: Transaction block verified and securely committed to the ledger.")
+        else:
+            print("[-] ALERT: Cryptographic identity validation failed. Transaction rejected.")
 
 if __name__ == "__main__":
-    system = QuantumDefenseDashboard()
-    system.run()
+    ledger = QuantumHashLedger()
+    print("--- QUANTUM-RESISTANT HASH LEDGER ---")
+
+    ledger.add_block("TX_FROM:Alice_TX_TO:Bob_AMOUNT:10_BTC")
