@@ -5,28 +5,19 @@ import streamlit as st
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-
-# === NOVAS IMPORTAÇÕES PARA A INTELIGÊNCIA ARTIFICIAL ===
 import numpy as np
 from sklearn.linear_model import LinearRegression
 
-# ==========================================
-# 1. CONFIGURAÇÃO DA INTERFACE (STREAMLIT)
-# ==========================================
-st.set_page_config(page_title="Gestão de Estoque Inteligente", layout="wide")
-st.title("📦 Sistema de Monitoramento & Predição de Estoque")
+st.set_page_config(page_title="Smart Inventory Management", layout="wide")
+st.title("📦 Inventory Monitoring & Prediction System")
 
-# Painel Lateral para Configurações de E-mail
-st.sidebar.header("📧 Configurações de Alerta")
+st.sidebar.header("📧 Alert Settings")
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = st.sidebar.text_input("E-mail Remetente", value="seu_email@gmail.com")
-SENDER_PASSWORD = st.sidebar.text_input("Senha de App (Google)", type="password", value="sua_senha_de_app")
-RECEIVER_EMAIL = st.sidebar.text_input("E-mail Destinatário", value="destinatario_alerta@gmail.com")
+SENDER_EMAIL = st.sidebar.text_input("Sender Email", value="your_email@gmail.com")
+SENDER_PASSWORD = st.sidebar.text_input("App Password (Google)", type="password", value="your_app_password")
+RECEIVER_EMAIL = st.sidebar.text_input("Receiver Email", value="receiver_alert@gmail.com")
 
-# ==========================================
-# 2. CONFIGURAÇÃO DO BANCO DE DADOS PERSISTENTE
-# ==========================================
 conn = sqlite3.connect("inventory.db", check_same_thread=False)
 cursor = conn.cursor()
 
@@ -35,7 +26,7 @@ cursor.execute("""
         id INTEGER PRIMARY KEY, 
         name TEXT, 
         current_stock INTEGER,
-        status TEXT DEFAULT 'Ativo'
+        status TEXT DEFAULT 'Active'
     )
 """)
 cursor.execute("""
@@ -46,46 +37,42 @@ cursor.execute("""
     )
 """)
 
-# Carga inicial de teste (só insere se o banco estiver limpo)
 cursor.execute("SELECT COUNT(*) FROM products")
 if cursor.fetchone()[0] == 0:
     cursor.executemany(
         "INSERT INTO products VALUES (?, ?, ?, ?)",
-        [(101, "Mechanical Keyboard", 15, "Ativo"), 
-         (102, "Gaming Mouse", 80, "Ativo")]
+        [(101, "Mechanical Keyboard", 15, "Active"), 
+         (102, "Gaming Mouse", 80, "Active")]
     )
     today = datetime.now()
     d1 = (today - timedelta(days=1)).strftime('%Y-%m-%d')
     d2 = (today - timedelta(days=2)).strftime('%Y-%m-%d')
     d3 = (today - timedelta(days=3)).strftime('%Y-%m-%d')
     cursor.executemany(
-        "INSERT INTO sales VALUES(?, ?, ?)",
+        "INSERT INTO sales VALUES (?, ?, ?)",
         [(101, 5, d1), (101, 5, d2), (101, 5, d3),
          (102, 2, d1), (102, 4, d2), (102, 3, d3)]
     )
     conn.commit()
 
-# ==========================================
-# 3. FUNÇÃO DE ENVIO DE E-MAIL
-# ==========================================
 def send_email_alert(product_name, remaining_days, depletion_date, stock):
-    if SENDER_EMAIL == "seu_email@gmail.com":
-        return "ℹ️ Envio de e-mail pulado: configure suas credenciais na barra lateral."
+    if SENDER_EMAIL == "your_email@gmail.com":
+        return "ℹ️ Email sending skipped: configure your credentials in the sidebar."
 
     msg = MIMEMultipart()
     msg['From'] = SENDER_EMAIL
     msg['To'] = RECEIVER_EMAIL
-    msg['Subject'] = f"⚠️ [ALERTA DE COMPRA] - {product_name} acabando!"
+    msg['Subject'] = f"⚠️ [PURCHASE ALERT] - {product_name} running out!"
 
     body = f"""
-    Atenção, o sistema detectou uma necessidade crítica de reposição:
+    Attention, the system has detected a critical replenishment need:
     
-    Produto: {product_name}
-    Estoque Atual: {stock} unidades
-    Dias Restantes Estimados: {remaining_days} dias
-    Data Prevista para Esgotamento: {depletion_date}
+    Product: {product_name}
+    Current Stock: {stock} units
+    Estimated Remaining Days: {remaining_days} days
+    Expected Depletion Date: {depletion_date}
     
-    Por favor, gere uma nova ordem de compra imediatamente.
+    Please generate a new purchase order immediately.
     """
     msg.attach(MIMEText(body, 'plain'))
 
@@ -95,31 +82,27 @@ def send_email_alert(product_name, remaining_days, depletion_date, stock):
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
         server.quit()
-        return f"📧 E-mail de alerta enviado com sucesso para {RECEIVER_EMAIL}!"
+        return f"📧 Alert email successfully sent to {RECEIVER_EMAIL}!"
     except Exception as e:
-        return f"❌ Falha ao enviar e-mail: {e}"
+        return f"❌ Failed to send email: {e}"
 
-# ==========================================
-# 4. CRIAÇÃO DAS ABAS NA INTERFACE WEB
-# ==========================================
-aba_dashboard, aba_cadastro, aba_status, aba_simulador = st.tabs([
-    "📊 Painel Geral & Predição", 
-    "🆕 Cadastrar Produtos", 
-    "⚙️ Gerenciar Linha de Produtos",
-    "🛒 Simular Novas Vendas"
+dashboard_tab, registration_tab, status_tab, simulator_tab = st.tabs([
+    "📊 General Dashboard & Prediction", 
+    "🆕 Register Products", 
+    "⚙️ Manage Product Line",
+    "🛒 Simulate New Sales"
 ])
 
-# --- ABA 1: PAINEL GERAL (MONITOR TRADICIONAL + INTELIGÊNCIA ARTIFICIAL) ---
-with aba_dashboard:
-    st.header("Análise Automatizada de Riscos e Tendências")
+with dashboard_tab:
+    st.header("Automated Risk and Trend Analysis")
     
-    col_tradicional, col_ia = st.columns(2)
+    traditional_col, ai_col = st.columns(2)
     
-    with col_tradicional:
-        st.subheader("Análise Estatística Tradicional")
-        st.caption("Calcula o esgotamento baseado estritamente na média de vendas dos últimos 3 dias.")
+    with traditional_col:
+        st.subheader("Traditional Statistical Analysis")
+        st.caption("Calculates depletion strictly based on the average sales of the last 3 days.")
         
-        if st.button("🔄 Rodar Análise por Média Simples", type="primary"):
+        if st.button("🔄 Run Simple Average Analysis", type="primary"):
             three_days_ago = (datetime.now() - timedelta(days=3)).strftime('%Y-%m-%d')
             
             query = """
@@ -128,7 +111,7 @@ with aba_dashboard:
                     (IFNULL(SUM(s.quantity), 0) / 3.0) AS daily_average
                 FROM products p
                 LEFT JOIN sales s ON p.id = s.product_id AND s.sale_date >= ?
-                WHERE p.status = 'Ativo'
+                WHERE p.status = 'Active'
                 GROUP BY p.id
             """
             df = pd.read_sql_query(query, conn, params=(three_days_ago,))
@@ -143,113 +126,107 @@ with aba_dashboard:
                     depletion_date = (datetime.now() + timedelta(days=remaining_days)).strftime('%Y-%m-%d')
 
                     if remaining_days <= 5:
-                        st.error(f"⚠️ **TRADICIONAL:** O produto **{name}** (ID: {row['id']}) vai zerar em **{remaining_days} dias** ({depletion_date}).")
+                        st.error(f"⚠️ **TRADITIONAL:** The product **{name}** (ID: {row['id']}) will run out in **{remaining_days} days** ({depletion_date}).")
                         status_email = send_email_alert(name, remaining_days, depletion_date, stock)
                         st.info(status_email)
                     else:
-                        st.success(f"✅ **{name}**: Estoque seguro. Mais {remaining_days} dias.")
+                        st.success(f"✅ **{name}**: Safe stock. {remaining_days} more days.")
                 else:
-                    st.warning(f"ℹ️ **{name}**: Sem vendas recentes para calcular média.")
+                    st.warning(f"ℹ️ **{name}**: No recent sales to calculate average.")
 
-    with col_ia:
-        st.subheader("Predição Avançada por IA")
-        st.caption("Usa Machine Learning (Regressão Linear) para mapear aceleração ou queda de demanda no tempo.")
+    with ai_col:
+        st.subheader("Advanced AI Prediction")
+        st.caption("Uses Machine Learning (Linear Regression) to map acceleration or drop in demand over time.")
         
-        if st.button("🧠 Rodar Predição Preditiva com IA", type="secondary"):
-            query_vendas = "SELECT product_id, quantity, sale_date FROM sales"
-            df_vendas = pd.read_sql_query(query_vendas, conn)
+        if st.button("🧠 Run Predictive AI Forecast", type="secondary"):
+            sales_query = "SELECT product_id, quantity, sale_date FROM sales"
+            df_sales = pd.read_sql_query(sales_query, conn)
             
-            query_produtos = "SELECT id, name, current_stock FROM products WHERE status = 'Ativo'"
-            df_produtos = pd.read_sql_query(query_produtos, conn)
+            products_query = "SELECT id, name, current_stock FROM products WHERE status = 'Active'"
+            df_products = pd.read_sql_query(products_query, conn)
 
-            for index, produto in df_produtos.iterrows():
-                p_id = produto['id']
-                name = produto['name']
-                stock = produto['current_stock']
+            for index, product in df_products.iterrows():
+                p_id = product['id']
+                name = product['name']
+                stock = product['current_stock']
                 
-                # Filtra o histórico do produto específico
-                vendas_prod = df_vendas[df_vendas['product_id'] == p_id].copy()
+                product_sales = df_sales[df_sales['product_id'] == p_id].copy()
                 
-                if len(vendas_prod) >= 3:
-                    # IA estuda os números ordinais de dias
-                    vendas_prod['dia_num'] = range(1, len(vendas_prod) + 1)
-                    X = vendas_prod[['dia_num']].values  # Dias
-                    y = vendas_prod['quantity'].values   # Quantidades
+                if len(product_sales) >= 3:
+                    product_sales['day_num'] = range(1, len(product_sales) + 1)
+                    X = product_sales[['day_num']].values
+                    y = product_sales['quantity'].values
                     
-                    # Treinamento e predição em tempo real
-                    modelo_ia = LinearRegression()
-                    modelo_ia.fit(X, y)
+                    ai_model = LinearRegression()
+                    ai_model.fit(X, y)
                     
-                    proximo_dia = np.array([[len(vendas_prod) + 1]])
-                    previsao_vendas_amanha = modelo_ia.predict(proximo_dia)[0]
-                    previsao_vendas_amanha = max(0.1, previsao_vendas_amanha) # Evita divisão por zero ou negativa
+                    next_day = np.array([[len(product_sales) + 1]])
+                    tomorrow_sales_forecast = ai_model.predict(next_day)[0]
+                    tomorrow_sales_forecast = max(0.1, tomorrow_sales_forecast)
                     
-                    remaining_days = int(stock / previsao_vendas_amanha)
+                    remaining_days = int(stock / tomorrow_sales_forecast)
                     depletion_date = (datetime.now() + timedelta(days=remaining_days)).strftime('%Y-%m-%d')
                     
                     if remaining_days <= 5:
-                        st.error(f"🚨 **ALERTA CRÍTICO DA IA:** **{name}** detectado em forte tendência! Zera em **{remaining_days} dias** ({depletion_date}).")
+                        st.error(f"🚨 **CRITICAL AI ALERT:** **{name}** detected in strong trend! Runs out in **{remaining_days} days** ({depletion_date}).")
                         status_email = send_email_alert(name, remaining_days, depletion_date, stock)
                         st.info(status_email)
                     else:
-                        st.success(f"🧠 **IA ANÁLISE:** **{name}** calculada com estabilidade comercial. Restam {remaining_days} dias.")
+                        st.success(f"🧠 **AI ANALYSIS:** **{name}** calculated with commercial stability. {remaining_days} days remaining.")
                 else:
-                    st.warning(f"ℹ️ **{name}**: Histórico insuficiente para inteligência preditiva (Mínimo de 3 registros).")
+                    st.warning(f"ℹ️ **{name}**: Insufficient history for predictive intelligence (Minimum of 3 records).")
 
-# --- ABA 2: CADASTRO DE PRODUTOS ---
-with aba_cadastro:
-    st.header("Entrada de Novos Itens no Banco")
-    with st.form("form_cadastro", clear_on_submit=True):
-        id_prod = st.number_input("Código ID Único", min_value=1, step=1)
-        nome_prod = st.text_input("Nome do Produto comercial")
-        estoque_ini = st.number_input("Quantidade de Estoque Inicial", min_value=0, step=1)
-        botao_salvar = st.form_submit_button("Gravar no Banco SQL")
+with registration_tab:
+    st.header("New Item Entry in Database")
+    with st.form("form_registration", clear_on_submit=True):
+        product_id = st.number_input("Unique ID Code", min_value=1, step=1)
+        product_name = st.text_input("Commercial Product Name")
+        initial_stock = st.number_input("Initial Stock Quantity", min_value=0, step=1)
+        save_button = st.form_submit_button("Save to SQL Database")
         
-        if botao_salvar:
-            if nome_prod:
+        if save_button:
+            if product_name:
                 try:
-                    cursor.execute("INSERT INTO products (id, name, current_stock, status) VALUES (?, ?, ?, 'Ativo')", (id_prod, nome_prod, estoque_ini))
+                    cursor.execute("INSERT INTO products (id, name, current_stock, status) VALUES (?, ?, ?, 'Active')", (product_id, product_name, initial_stock))
                     conn.commit()
-                    st.success(f"Produto '{nome_prod}' adicionado com sucesso ao SQL!")
+                    st.success(f"Product '{product_name}' successfully added to SQL!")
                 except sqlite3.IntegrityError:
-                    st.error("Erro: Já existe um produto cadastrado com este ID.")
+                    st.error("Error: A product with this ID is already registered.")
             else:
-                st.error("O nome do produto não pode ficar em branco.")
+                st.error("Product name cannot be blank.")
 
-# --- ABA 3: FORA DE LINHA / STATUS ---
-with aba_status:
-    st.header("Status de Comercialização")
-    st.caption("Produtos marcados como 'Fora de Linha' são ignorados pelo robô de disparo de e-mails.")
+with status_tab:
+    st.header("Commercialization Status")
+    st.caption("Products marked as 'Discontinued' are ignored by the email alert robot.")
     
-    produtos_df = pd.read_sql_query("SELECT id, name, current_stock, status FROM products", conn)
+    products_df = pd.read_sql_query("SELECT id, name, current_stock, status FROM products", conn)
     
-    for idx, row in produtos_df.iterrows():
+    for idx, row in products_df.iterrows():
         col1, col2, col3 = st.columns([3, 2, 2])
         with col1:
-            st.write(f"**{row['name']}** (ID: {row['id']}) - Estoque: {row['current_stock']}")
+            st.write(f"**{row['name']}** (ID: {row['id']}) - Stock: {row['current_stock']}")
         with col2:
             st.write(f"Status: `{row['status']}`")
         with col3:
-            if row['status'] == 'Ativo':
-                if st.button("Mudar p/ Fora de Linha", key=f"del_{row['id']}"):
-                    cursor.execute("UPDATE products SET status = 'Fora de Linha' WHERE id = ?", (row['id'],))
+            if row['status'] == 'Active':
+                if st.button("Change to Discontinued", key=f"del_{row['id']}"):
+                    cursor.execute("UPDATE products SET status = 'Discontinued' WHERE id = ?", (row['id'],))
                     conn.commit()
                     st.rerun()
             else:
-                if st.button("Reativar Produto", key=f"act_{row['id']}"):
-                    cursor.execute("UPDATE products SET status = 'Ativo' WHERE id = ?", (row['id'],))
+                if st.button("Reactivate Product", key=f"act_{row['id']}"):
+                    cursor.execute("UPDATE products SET status = 'Active' WHERE id = ?", (row['id'],))
                     conn.commit()
                     st.rerun()
 
-# --- ABA 4: SIMULADOR DE VENDAS ---
-with aba_simulador:
-    st.header("Registrar Saída de Estoque (Venda)")
-    prod_venda = st.selectbox("Escolha o Produto", pd.read_sql_query("SELECT id, name FROM products WHERE status='Ativo'", conn))
-    qtd_venda = st.number_input("Quantidade Vendida", min_value=1, step=1)
+with simulator_tab:
+    st.header("Register Stock Outflow (Sale)")
+    sold_product = st.selectbox("Choose Product", pd.read_sql_query("SELECT id, name FROM products WHERE status='Active'", conn))
+    sold_quantity = st.number_input("Quantity Sold", min_value=1, step=1)
     
-    if st.button("Confirmar Venda"):
-        p_id = int(prod_venda.split()[0])
-        cursor.execute("UPDATE products SET current_stock = current_stock - ? WHERE id = ?", (qtd_venda, p_id))
-        cursor.execute("INSERT INTO sales VALUES (?, ?, ?)", (p_id, qtd_venda, datetime.now().strftime('%Y-%m-%d')))
+    if st.button("Confirm Sale"):
+        p_id = int(sold_product.split()[0])
+        cursor.execute("UPDATE products SET current_stock = current_stock - ? WHERE id = ?", (sold_quantity, p_id))
+        cursor.execute("INSERT INTO sales VALUES (?, ?, ?)", (p_id, sold_quantity, datetime.now().strftime('%Y-%m-%d')))
         conn.commit()
-        st.success("Venda processada! Estoque atualizado no SQL.")
+        st.success("Sale processed! Stock updated in SQL.")
