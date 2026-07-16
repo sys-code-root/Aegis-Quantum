@@ -1,0 +1,71 @@
+import ast
+import os
+
+class SuspiciousImportScanner:
+    
+    def __init__(self):
+        self.watchlist = {
+            'os': 'System file manipulation.',
+            'subprocess': 'Shell command execution.',
+            'socket': 'Network communication (Backdoor).',
+            'requests': 'Data exfiltration via HTTP.',
+            'pynput': 'Keylogging capabilities.',
+            'base64': 'Used for obfuscating payloads.',
+            'cryptography': 'File encryption (Ransomware).',
+            'importlib': 'Dynamic module loading (Anti-Analysis bypass).'
+        }
+
+    def scan(self, file_path):
+        if not os.path.exists(file_path):
+            print(f"[-] Error: File {file_path} not found.")
+            return
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as file:
+                tree = ast.parse(file.read())
+
+            print(f"[!] Scanning: {file_path}")
+            print("-" * 50)
+
+            detected_libs = set()
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        base_module = alias.name.split('.')[0]
+                        if base_module in self.watchlist:
+                            detected_libs.add(base_module)
+
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        base_module = node.module.split('.')[0]
+                        if base_module in self.watchlist:
+                            detected_libs.add(base_module)
+
+                elif isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Name) and node.func.id == '__import__':
+                        if node.args and isinstance(node.args[0], ast.Constant):
+                            base_module = str(node.args[0].value).split('.')[0]
+                            if base_module in self.watchlist:
+                                detected_libs.add(base_module)
+
+            if detected_libs:
+                for lib in detected_libs:
+                    self._print_alert(lib)
+            else:
+                print("[+] Scan completed: No suspicious core imports identified.")
+
+        except SyntaxError:
+            print("[-] Error: Target is not a valid Python script.")
+        except Exception as e:
+            print(f"[-] Unexpected error: {e}")
+
+    def _print_alert(self, lib_name):
+        print(f"[!] ALERT: Suspicious import '{lib_name}' detected.")
+        print(f"    Risk: {self.watchlist[lib_name]}")
+        print("-" * 50)
+
+if __name__ == "__main__":
+    target = input("Enter path to target .py file: ")
+    scanner = SuspiciousImportScanner()
+    scanner.scan(target)
